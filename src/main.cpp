@@ -1,18 +1,26 @@
 #include <Arduino.h>
+#include <BleMouse.h>
 
 void updateEncoder();
+void moveMouse(unsigned long);
 
 // Pins für den Encoder
-const int encoderPinA = 2;
-const int encoderPinB = 3;
+const int encoderPinA = 12;
+const int encoderPinB = 14;
 
 // Variablen zur Speicherung des Zustands des Encoders
 volatile int encoderPos = 0;
 volatile int lastEncoded = 0;
 volatile long lastencoderValue = 0;
 
+BleMouse bleMouse("ESP32 Steering Wheel", "Elxas866", 100);
+
 void setup() {
   Serial.begin(9600);
+
+  Serial.println("Starting BLE Mouse...");
+  bleMouse.begin();
+  Serial.println("BLE Mouse started!");
 
   // Encoder-Pins als Eingänge konfigurieren
   pinMode(encoderPinA, INPUT_PULLUP);
@@ -21,12 +29,18 @@ void setup() {
   // Interrupthandler für die Encoder-Pins konfigurieren
   attachInterrupt(digitalPinToInterrupt(encoderPinA), updateEncoder, CHANGE);
   attachInterrupt(digitalPinToInterrupt(encoderPinB), updateEncoder, CHANGE);
+
 }
 
 void loop() {
-  // Hier kannst du die Encoder-Position verwenden
-  Serial.println(encoderPos); // Über die serielle Schnittstelle ausgeben
-  delay(100); // Eine kurze Pause für die Ausgabe
+
+  if (bleMouse.isConnected()) {
+    bleMouse.move(encoderPos * 10, 0, 0);
+    Serial.println("Moved.");
+    Serial.println("X: " + String(encoderPos * 10));
+  }
+  delay(1000);
+
 }
 
 void updateEncoder() {
