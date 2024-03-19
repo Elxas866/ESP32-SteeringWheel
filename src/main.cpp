@@ -41,18 +41,23 @@ void setup() {
   Serial.println("BLE Gamepad initialized!");
 
   // Encoder-Pins als Eingänge konfigurieren
-  pinMode(encoderPinA, INPUT_PULLUP);
-  pinMode(encoderPinB, INPUT_PULLUP);
+  pinMode(encoderPinA, INPUT);
+  pinMode(encoderPinB, INPUT);
 
-  // Interrupthandler für die Encoder-Pins konfigurieren
-  attachInterrupt(digitalPinToInterrupt(encoderPinA), updateEncoder, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(encoderPinB), updateEncoder, CHANGE);
+  // // Interrupthandler für die Encoder-Pins konfigurieren
+  // attachInterrupt(digitalPinToInterrupt(encoderPinA), updateEncoder, CHANGE);
+  // attachInterrupt(digitalPinToInterrupt(encoderPinB), updateEncoder, CHANGE);
 }
 
 void loop() {
-  // tmp
+  updateEncoder();
+
   if (bleGamepad.isConnected()) {
-    quickTest();
+    //quickTest();
+    if (encoderPos> -32767 && encoderPos < 32767) {
+      bleGamepad.setSteering(encoderPos);
+      bleGamepad.sendReport();
+    }
   }
 }
 
@@ -64,10 +69,10 @@ void updateEncoder() {
   int sum = (lastEncoded << 2) | encoded;
 
   if (sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) {
-    encoderPos++;
+    encoderPos += 256;
   }
   else if (sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) {
-    encoderPos--;
+    encoderPos -= 256;
   }
 
   lastEncoded = encoded;
