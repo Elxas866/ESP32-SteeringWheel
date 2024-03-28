@@ -54,8 +54,9 @@ void loop() {
 
   if (bleGamepad.isConnected()) {
     //quickTest();
-    if (encoderPos> -32767 && encoderPos < 32767) {
-      bleGamepad.setSteering(encoderPos);
+    int mult = 5;
+    if (encoderPos*mult > -32767 && encoderPos*mult < 32767) {
+      bleGamepad.setSteering(encoderPos*mult);
       bleGamepad.sendReport();
     }
   }
