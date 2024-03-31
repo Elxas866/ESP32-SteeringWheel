@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <BleGamepad.h>
+#include <ESP32Encoder.h>
 
-void updateEncoder();
 void initBleGamepad();
 void quickTest();
 
@@ -24,14 +24,8 @@ BleGamepad bleGamepad("ESP32 steering wheel", "Elxas866", 100);
 #define enableBrake true
 #define enableSteering true
 
-// Pins für den Encoder
-const int encoderPinA = 12;
-const int encoderPinB = 14;
-
-// Variablen zur Speicherung des Zustands des Encoders
-volatile int encoderPos = 0;
-volatile int lastEncoded = 0;
-volatile long lastencoderValue = 0;
+ESP32Encoder encoder;
+ESP32Encoder encoder1;
 
 void setup() {
   Serial.begin(9600);
@@ -40,43 +34,37 @@ void setup() {
   initBleGamepad();
   Serial.println("BLE Gamepad initialized!");
 
-  // Encoder-Pins als Eingänge konfigurieren
-  pinMode(encoderPinA, INPUT);
-  pinMode(encoderPinB, INPUT);
+  //ESP32Encoder::useInternalWeakPullResistors = puType::down;
+	// Enable the weak pull up resistors
+	ESP32Encoder::useInternalWeakPullResistors = puType::up;
 
-  // // Interrupthandler für die Encoder-Pins konfigurieren
-  // attachInterrupt(digitalPinToInterrupt(encoderPinA), updateEncoder, CHANGE);
-  // attachInterrupt(digitalPinToInterrupt(encoderPinB), updateEncoder, CHANGE);
+  // use pin 4 and 16 for the first encoder
+	encoder.attachHalfQuad(16, 4);
+	encoder1.attachHalfQuad(5, 17);
+
+  // set starting count value after attaching
+	encoder.setCount(0);
+	encoder1.setCount(0);
+
+	// clear the encoder's raw count and set the tracked count to zero
+	Serial.println("Encoder Start = " + String((int32_t)encoder.getCount()));
+	Serial.println("Encoder 1 Start = " + String((int32_t)encoder1.getCount()));
 }
 
 void loop() {
-  updateEncoder();
-
   if (bleGamepad.isConnected()) {
     //quickTest();
-    int mult = 5;
-    if (encoderPos*mult > -32767 && encoderPos*mult < 32767) {
-      bleGamepad.setSteering(encoderPos*mult);
+    int mult = 1024;
+    if (encoder.getCount()*mult > -32767 && encoder.getCount()*mult < 32767) {
+      bleGamepad.setSteering(encoder.getCount()*mult);
+      bleGamepad.sendReport();
+    }
+
+    if (encoder1.getCount()*mult > -32767 && encoder1.getCount()*mult < 32767) {
+      bleGamepad.setAccelerator(encoder1.getCount()*mult);
       bleGamepad.sendReport();
     }
   }
-}
-
-void updateEncoder() {
-  int MSB = digitalRead(encoderPinA);
-  int LSB = digitalRead(encoderPinB);
-
-  int encoded = (MSB << 1) | LSB;
-  int sum = (lastEncoded << 2) | encoded;
-
-  if (sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) {
-    encoderPos += 256;
-  }
-  else if (sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) {
-    encoderPos -= 256;
-  }
-
-  lastEncoded = encoded;
 }
 
 void initBleGamepad() {
